@@ -45,11 +45,8 @@
         name: "{{ docker_service }}"
         state: started
         enabled: yes
-      # Crucial: This ensures the 'docker' group is available before the next step
 
     - name: Add remote user to the docker group
-      # This task runs ONLY after the package is installed and the service is started,
-      # guaranteeing the 'docker' group exists, thus fixing your "Group docker does not exist" error.
       ansible.builtin.user:
         name: "{{ ansible_user }}" # User connecting to the remote host
         groups: docker

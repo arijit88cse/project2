@@ -1,0 +1,55 @@
+---
+- name: Completely Uninstall Docker and Cleanup Data on Ubuntu/Debian
+  hosts: localhost # Target the group containing the server to clean
+  become: yes          # Root privileges required for uninstallation and cleanup
+
+  tasks:
+    - name: Stop the Docker service
+      ansible.builtin.service:
+        name: docker
+        state: stopped
+      ignore_errors: yes # Continue even if the service is not found or already stopped
+
+    - name: Remove the Docker packages (core and related)
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+          - docker.io # Fallback for package installed via default Ubuntu repos
+          - docker-engine
+        state: absent
+        autoremove: yes
+
+    - name: Remove Docker configurations and data directory
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/docker # Main Docker data
+        - /var/lib/containerd # Containerd data
+        - /etc/docker # Configuration files
+        - /etc/systemd/system/docker.service.d # Systemd overrides
+
+    - name: Remove remaining user configuration files
+      ansible.builtin.file:
+        path: "~/.docker"
+        state: absent
+
+    - name: Ensure the system is cleaned up (optional, but good practice)
+      ansible.builtin.apt:
+        path: "~/.docker"
+        state: absent
+
+    - name: Ensure the system is cleaned up (optional, but good practice)
+      ansible.builtin.apt:
+        autoclean: yes
+        autoremove: yes
+
+    - name: Clear shell command hash to ensure 'docker' command is forgotten
+      # Note: We use 'ansible.builtin.command' here as 'hash' is a shell built-in
+      # and this task forces the remote shell to clear its cache.
+      ansible.builtin.command: hash -r
+      changed_when: false # This command always succeeds but doesn't change system state
