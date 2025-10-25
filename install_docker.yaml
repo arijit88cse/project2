@@ -1,0 +1,33 @@
+---
+- name: Install Docker on Test Server
+  hosts: test_servers # <-- TARGETS BOTH SERVERS IN THE INVENTORY GROUP
+  become: yes          # Run tasks with root privileges
+
+  vars:
+    # Assuming Debian/Ubuntu for this example
+    docker_package: docker.io
+    docker_service: docker
+
+  tasks:
+    - name: Update apt package cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required Docker packages
+      ansible.builtin.apt:
+        name: "{{ docker_package }}"
+        state: present
+
+    - name: Ensure Docker service is running and enabled at boot
+      ansible.builtin.service:
+        name: "{{ docker_service }}"
+        state: started
+        enabled: yes
+
+    - name: Add remote user to the docker group
+      ansible.builtin.user:
+        name: "{{ ansible_user }}" 
+        groups: docker
+        append: yes
+      when: ansible_user != 'root'
